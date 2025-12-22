@@ -100,39 +100,160 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the typewriter effect
     sequentialTypewriter();
 
-    // Certificate Carousel Functionality
+    // =========================
+    // Certificates (auto-built)
+    // =========================
+    const CERTIFICATE_FILES = [
+        '(Bulk 1) Copy of 2025 CERT_ATTENDANCE-210_signed.png',
+        'ANZ.png',
+        'Beginning Oracle WebLogic for Administrators.png',
+        'Build Your Own NetApp Storage Lab, for Free.png',
+        'Cisco LABS Crash Course.png',
+        'Configure Juniper SRX Router Using J-Web.png',
+        'Cybersecurity for Small and Medium Size Business.png',
+        'GILBERT I. REQUITUD JR. Certificate of Attendance.png',
+        'How to Think like a Startup with AI-Native Workflows.pdf',
+        'Information Technology Specialist in Networking.pdf',
+        'Introduction to Dark Web, Anonymity, and Cryptocurrency.png',
+        'Introduction to Internet of Things.pdf',
+        'Introduction to SAN and NAS Storage.png',
+        'Introduction_to_Cybersecurity.png',
+        'Learn Python 3 with Turtle.png',
+        'MasterCard.png',
+        'Network Support and Security.pdf',
+        'Python for Absolute Beginners.png',
+        'Quick Start Guide to Oracle SOA 12c.png',
+        'Scrum A Concise Introduction.png',
+        'Security-Governance-AI-Governance-Certification-Securiti-Education.png',
+        'SQL Injection Attacks.png',
+        'Telstra.png'
+    ];
+
+    function humanizeCertificateName(filename) {
+        const withoutExt = filename.replace(/\.(png|jpe?g|pdf)$/i, '');
+        return withoutExt
+            .replace(/^\(Bulk\s*\d+\)\s*Copy\s*of\s*/i, '')
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function pickCertificateIcon(filename) {
+        const lower = filename.toLowerCase();
+        if (lower.endsWith('.pdf')) return '📄';
+        if (lower.includes('cisco')) return '🔧';
+        if (lower.includes('juniper')) return '🌐';
+        if (lower.includes('oracle')) return '🟣';
+        if (lower.includes('netapp') || lower.includes('storage') || lower.includes('san') || lower.includes('nas')) return '💾';
+        if (lower.includes('python')) return '🐍';
+        if (lower.includes('sql')) return '⚡';
+        if (lower.includes('dark web') || lower.includes('anonymity') || lower.includes('cryptocurrency')) return '🕶️';
+        if (lower.includes('iot')) return '📡';
+        if (lower.includes('scrum')) return '🧭';
+        if (lower.includes('governance') || lower.includes('ai')) return '🤖';
+        if (lower.includes('mastercard')) return '💳';
+        if (lower.includes('anz')) return '🏦';
+        if (lower.includes('telstra')) return '📶';
+        if (lower.includes('cyber') || lower.includes('security')) return '🔐';
+        return '🎓';
+    }
+
+    function isPdf(path) {
+        return /\.pdf$/i.test(path);
+    }
+
+    function buildCertificateCard({ path, title, org, year, icon }) {
+        const safeTitle = title || 'Certificate';
+        const safeOrg = org || 'Professional Development';
+        const safeYear = year || '2025';
+
+        const thumbnailHtml = isPdf(path)
+            ? `
+                <div class="cert-pdf-thumb" aria-label="PDF certificate thumbnail">
+                    <div class="cert-pdf-badge">PDF</div>
+                    <div class="cert-pdf-name">${safeTitle}</div>
+                </div>
+              `
+            : `
+                <img src="${path}" alt="${safeTitle}" class="cert-thumb" loading="lazy">
+              `;
+
+        return `
+            <div class="certificate-card">
+                <div class="certificate-thumbnail" role="button" tabindex="0" aria-label="Preview ${safeTitle}">
+                    ${thumbnailHtml}
+                    <div class="certificate-icon">${icon}</div>
+                </div>
+                <div class="certificate-details">
+                    <h3 class="certificate-title">${safeTitle}</h3>
+                    <p class="certificate-org">${safeOrg}</p>
+                    <p class="certificate-date">${safeYear}</p>
+                    <div class="certificate-actions">
+                        <a href="#" class="certificate-preview certificate-link" data-cert="${path}">PREVIEW</a>
+                        <a href="${path}" class="certificate-link" target="_blank">DOWNLOAD</a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function buildCertificateSlides() {
+        const carouselTrack = document.querySelector('.carousel-track');
+        const indicatorsContainer = document.querySelector('.carousel-indicators');
+        if (!carouselTrack || !indicatorsContainer) return;
+
+        const certificates = CERTIFICATE_FILES
+            .map((file) => {
+                const path = `certificates/${file}`;
+                return {
+                    path,
+                    title: humanizeCertificateName(file),
+                    org: 'Professional Development',
+                    year: '2025',
+                    icon: pickCertificateIcon(file)
+                };
+            });
+
+        const CARDS_PER_SLIDE = 2;
+        const totalSlides = Math.max(1, Math.ceil(certificates.length / CARDS_PER_SLIDE));
+
+        // Build slides
+        let slidesHtml = '';
+        for (let i = 0; i < totalSlides; i++) {
+            const startIndex = i * CARDS_PER_SLIDE;
+            const slice = certificates.slice(startIndex, startIndex + CARDS_PER_SLIDE);
+            slidesHtml += `<div class="certificate-slide">${slice.map(buildCertificateCard).join('')}</div>`;
+        }
+        carouselTrack.innerHTML = slidesHtml;
+
+        // Build indicators
+        indicatorsContainer.innerHTML = Array.from({ length: totalSlides })
+            .map((_, index) => `<button class="indicator ${index === 0 ? 'active' : ''}" data-slide="${index}" aria-label="Go to slide ${index + 1}"></button>`)
+            .join('');
+
+        return { totalSlides };
+    }
+
+    const carouselSetup = buildCertificateSlides();
+
+    // Certificate Carousel Functionality (after slides are generated)
     const carouselTrack = document.querySelector('.carousel-track');
-    const carouselSlides = document.querySelectorAll('.certificate-slide');
     const prevBtn = document.querySelector('.carousel-prev');
     const nextBtn = document.querySelector('.carousel-next');
-    const indicators = document.querySelectorAll('.indicator');
-    
-    if (carouselTrack && carouselSlides.length > 0) {
+
+    if (carouselTrack && carouselSetup?.totalSlides) {
         let currentSlide = 0;
-        const totalSlides = carouselSlides.length; // Now 4 slides instead of 14
-        const slidesToShow = 1; // Still show 1 slide at a time (each slide contains 4 certificates)
-        const maxSlide = totalSlides - 1; // Allow cycling through all slides
+        const totalSlides = carouselSetup.totalSlides;
 
         function updateCarousel() {
-            // Use the width of a single slide (including its internal padding) to calculate movement
-            const firstSlide = carouselSlides[0];
-            const slideWidth = firstSlide.getBoundingClientRect().width; 
-            const translateX = -(currentSlide * slideWidth);
-            
-            carouselTrack.style.transform = `translateX(${translateX}px)`;
-            
-            // Update indicators
-            indicators.forEach((indicator, index) => {
+            carouselTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+            document.querySelectorAll('.indicator').forEach((indicator, index) => {
                 indicator.classList.toggle('active', index === currentSlide);
             });
-            
-            // Update button states - never disable for continuous loop
-            prevBtn.disabled = false;
-            nextBtn.disabled = false;
         }
 
         function goToSlide(slideIndex) {
-            // Handle wrap-around for continuous loop
             if (slideIndex >= totalSlides) {
                 currentSlide = 0;
             } else if (slideIndex < 0) {
@@ -143,42 +264,30 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCarousel();
         }
 
-        // Navigation buttons
-        prevBtn.addEventListener('click', () => {
-            goToSlide(currentSlide - 1);
-        });
+        prevBtn?.addEventListener('click', () => goToSlide(currentSlide - 1));
+        nextBtn?.addEventListener('click', () => goToSlide(currentSlide + 1));
 
-        nextBtn.addEventListener('click', () => {
-            goToSlide(currentSlide + 1);
-        });
-
-        // Indicator buttons
-        indicators.forEach((indicator, index) => {
+        document.querySelectorAll('.indicator').forEach((indicator) => {
             indicator.addEventListener('click', () => {
+                const index = Number(indicator.getAttribute('data-slide') || '0');
                 goToSlide(index);
             });
         });
 
-        // Enhanced Auto-play carousel with continuous loop
+        // Auto-play
         let autoPlayInterval;
         function startAutoPlay() {
-            autoPlayInterval = setInterval(() => {
-                goToSlide(currentSlide + 1); // Will auto-wrap to 0 when reaching end
-            }, 3000); // Reduced to 3 seconds for more dynamic feel
+            autoPlayInterval = setInterval(() => goToSlide(currentSlide + 1), 3500);
         }
-
         function stopAutoPlay() {
             clearInterval(autoPlayInterval);
         }
 
-        // Pause auto-play on hover
         const carouselContainer = document.querySelector('.carousel-container');
-        if (carouselContainer) {
-            carouselContainer.addEventListener('mouseenter', stopAutoPlay);
-            carouselContainer.addEventListener('mouseleave', startAutoPlay);
-        }
+        carouselContainer?.addEventListener('mouseenter', stopAutoPlay);
+        carouselContainer?.addEventListener('mouseleave', startAutoPlay);
 
-        // Touch/swipe support for mobile
+        // Touch/swipe support
         let startX = 0;
         let isDragging = false;
 
@@ -186,44 +295,33 @@ document.addEventListener('DOMContentLoaded', function() {
             startX = e.touches[0].clientX;
             isDragging = true;
             stopAutoPlay();
-        });
-
-        carouselTrack.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-        });
+        }, { passive: true });
 
         carouselTrack.addEventListener('touchend', (e) => {
             if (!isDragging) return;
             isDragging = false;
-            
             const endX = e.changedTouches[0].clientX;
             const diffX = startX - endX;
-            
-            if (Math.abs(diffX) > 50) { // Minimum swipe distance
-                if (diffX > 0) {
-                    goToSlide(currentSlide + 1); // Swipe left - next
-                } else {
-                    goToSlide(currentSlide - 1); // Swipe right - previous
-                }
+
+            if (Math.abs(diffX) > 50) {
+                if (diffX > 0) goToSlide(currentSlide + 1);
+                else goToSlide(currentSlide - 1);
             }
-            
             startAutoPlay();
         });
 
-        // Initialize carousel
+        // Re-sync transform on resize (percent-based, but still good to reapply)
+        window.addEventListener('resize', () => updateCarousel());
+
         updateCarousel();
         startAutoPlay();
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            updateCarousel();
-        });
     }
 
     // Enhanced certificate preview functionality
     const modal = document.getElementById('certificateModal');
     const modalImage = document.getElementById('certificateImage');
+    const modalPdf = document.getElementById('certificatePdf');
+    const modalPdfViewer = document.getElementById('certificatePdfViewer');
     const modalLoading = document.querySelector('.modal-loading');
     const modalDownloadBtn = document.getElementById('modalDownload');
     const modalCloseButtons = document.querySelectorAll('.modal-close, .modal-close-btn');
@@ -238,6 +336,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     let currentCertificatePath = '';
+    let pdfjsReadyPromise = null;
+    let currentPdfRenderToken = 0;
 
     // Handle certificate preview clicks
     document.addEventListener('click', e => {
@@ -252,69 +352,211 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function openCertificateModal(imagePath) {
+    function openCertificateModal(assetPath) {
         // Show modal and loading state
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
         modalLoading.style.display = 'flex';
         modalImage.style.display = 'none';
+        if (modalPdfViewer) {
+            modalPdfViewer.style.display = 'none';
+            modalPdfViewer.innerHTML = '';
+        }
+        if (modalPdf) {
+            modalPdf.style.display = 'none';
+            modalPdf.src = '';
+        }
         
         // Update modal title
         const modalTitle = document.querySelector('.modal-title');
-        const certificateName = imagePath.split('/').pop().replace(/\.(png|jpg|jpeg)$/i, '').replace(/[-_]/g, ' ');
+        const certificateName = assetPath.split('/').pop().replace(/\.(png|jpg|jpeg|pdf)$/i, '').replace(/[-_]/g, ' ');
         modalTitle.textContent = `Certificate Preview - ${certificateName}`;
-        
-        // Load the image
+
+        const isPdfAsset = /\.pdf$/i.test(assetPath);
+
+        // Enable download button immediately (preview may still fail)
+        modalDownloadBtn.disabled = false;
+        modalDownloadBtn.onclick = () => downloadCertificate(assetPath);
+
+        // Clear any previous error
+        const existingError = document.querySelector('.modal-error');
+        if (existingError) existingError.remove();
+
+        if (isPdfAsset) {
+            // PDF preview (render pages with PDF.js)
+            renderPdfInModal(assetPath);
+            return;
+        }
+
+        // Image preview
         const img = new Image();
         img.onload = function() {
-            modalImage.src = imagePath;
+            modalImage.src = assetPath;
             modalLoading.style.display = 'none';
             modalImage.style.display = 'block';
-            
-            // Enable download button and set up event handlers
-            modalDownloadBtn.disabled = false;
-            modalDownloadBtn.onclick = () => downloadCertificate(imagePath);
-            
-            // Also add event listener as backup
-            modalDownloadBtn.addEventListener('click', function downloadHandler(e) {
-                e.preventDefault();
-                downloadCertificate(imagePath);
-                // Remove this specific event listener after use
-                modalDownloadBtn.removeEventListener('click', downloadHandler);
-            }, { once: true });
         };
-        
+
         img.onerror = function() {
             modalLoading.style.display = 'none';
             modalImage.style.display = 'none';
-            
-            // Show error message
+            if (modalPdf) modalPdf.style.display = 'none';
+
             const errorDiv = document.createElement('div');
             errorDiv.className = 'modal-error';
             errorDiv.innerHTML = `
                 <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-                    <h3 style="color: var(--primary); margin-bottom: 1rem;">Certificate Not Found</h3>
-                    <p>The certificate image could not be loaded. It may have been moved or deleted.</p>
-                    <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">Path: ${imagePath}</p>
+                    <h3 style="color: var(--primary); margin-bottom: 1rem;">Preview Failed</h3>
+                    <p>The certificate could not be loaded. It may have been moved or deleted.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">Path: ${assetPath}</p>
                 </div>
             `;
-            
-            // Insert error message into modal body
+
             const modalBody = document.querySelector('.modal-body');
             modalBody.appendChild(errorDiv);
-            
-            // Disable download button
-            modalDownloadBtn.disabled = true;
-            modalDownloadBtn.onclick = null;
         };
-        
-        img.src = imagePath;
+
+        img.src = assetPath;
+    }
+
+    function ensurePdfJsReady() {
+        if (pdfjsReadyPromise) return pdfjsReadyPromise;
+
+        pdfjsReadyPromise = new Promise((resolve, reject) => {
+            if (window.pdfjsLib) {
+                resolve(window.pdfjsLib);
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.async = true;
+            script.onload = () => {
+                if (!window.pdfjsLib) {
+                    reject(new Error('PDF.js loaded but pdfjsLib is missing'));
+                    return;
+                }
+
+                // Configure worker
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                resolve(window.pdfjsLib);
+            };
+            script.onerror = () => reject(new Error('Failed to load PDF.js from CDN'));
+            document.head.appendChild(script);
+        });
+
+        return pdfjsReadyPromise;
+    }
+
+    async function renderPdfInModal(pdfPath) {
+        const token = ++currentPdfRenderToken;
+
+        // Reset any previous UI
+        if (modalPdfViewer) {
+            modalPdfViewer.innerHTML = '';
+            modalPdfViewer.style.display = 'block';
+        }
+        if (modalPdf) {
+            modalPdf.style.display = 'none';
+            modalPdf.src = '';
+        }
+        modalImage.style.display = 'none';
+        modalLoading.style.display = 'flex';
+
+        // Clear any previous error messages
+        const existingError = document.querySelector('.modal-error');
+        if (existingError) existingError.remove();
+
+        try {
+            const pdfjsLib = await ensurePdfJsReady();
+            if (token !== currentPdfRenderToken) return;
+
+            // Loading from file:// can be blocked in some browsers. We'll try PDF.js first.
+            const loadingTask = pdfjsLib.getDocument({ url: pdfPath });
+            const pdf = await loadingTask.promise;
+            if (token !== currentPdfRenderToken) {
+                try { loadingTask.destroy(); } catch (_) {}
+                return;
+            }
+
+            modalLoading.style.display = 'none';
+
+            const container = modalPdfViewer;
+            if (!container) return;
+
+            // Render all pages
+            const containerWidth = Math.max(320, container.clientWidth || 900);
+
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                if (token !== currentPdfRenderToken) return;
+
+                const page = await pdf.getPage(pageNumber);
+                const unscaledViewport = page.getViewport({ scale: 1 });
+                const scale = Math.min(2.0, (containerWidth - 24) / unscaledViewport.width);
+                const viewport = page.getViewport({ scale });
+
+                const pageWrap = document.createElement('div');
+                pageWrap.className = 'pdf-page';
+
+                const label = document.createElement('div');
+                label.className = 'pdf-page-label';
+                label.textContent = `Page ${pageNumber} / ${pdf.numPages}`;
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d', { alpha: false });
+                canvas.width = Math.floor(viewport.width);
+                canvas.height = Math.floor(viewport.height);
+                canvas.className = 'pdf-canvas';
+
+                pageWrap.appendChild(label);
+                pageWrap.appendChild(canvas);
+                container.appendChild(pageWrap);
+
+                await page.render({ canvasContext: ctx, viewport }).promise;
+            }
+
+            // Best-effort cleanup
+            try { pdf.cleanup(); } catch (_) {}
+        } catch (error) {
+            // Fallback: iframe (browser's built-in PDF viewer)
+            console.warn('PDF.js render failed, falling back to iframe viewer:', error);
+            modalLoading.style.display = 'none';
+
+            if (modalPdfViewer) {
+                modalPdfViewer.style.display = 'none';
+                modalPdfViewer.innerHTML = '';
+            }
+
+            if (modalPdf) {
+                modalPdf.src = `${pdfPath}#toolbar=1&navpanes=0&view=FitH`;
+                modalPdf.style.display = 'block';
+                return;
+            }
+
+            // If no iframe either, show a helpful error
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'modal-error';
+            errorDiv.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                    <h3 style="color: var(--primary); margin-bottom: 1rem;">PDF Preview Blocked</h3>
+                    <p>Your browser may block PDF rendering when opened as a local file.</p>
+                    <p style="margin-top: 0.75rem; opacity: 0.9;">Tip: run a local server (VS Code Live Server) then open the site via <b>http://localhost</b>.</p>
+                </div>
+            `;
+            const modalBody = document.querySelector('.modal-body');
+            modalBody.appendChild(errorDiv);
+        }
     }
 
     function closeImageModal(){
+        // Cancel any in-progress PDF render
+        currentPdfRenderToken++;
+
         modal.style.display = 'none';
         modalImage.src = '';
+        if (modalPdf) modalPdf.src = '';
+        if (modalPdfViewer) modalPdfViewer.innerHTML = '';
         document.body.style.overflow = 'auto';
         currentCertificatePath = '';
         
@@ -327,6 +569,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset loading state
         modalLoading.style.display = 'none';
         modalImage.style.display = 'none';
+        if (modalPdf) modalPdf.style.display = 'none';
+        if (modalPdfViewer) modalPdfViewer.style.display = 'none';
         modalDownloadBtn.disabled = true;
         modalDownloadBtn.onclick = null;
     }
